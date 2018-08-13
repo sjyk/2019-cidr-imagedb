@@ -26,6 +26,7 @@ We propose a benchmark workload of 6 queries on these datasets to evaluate \text
 \vspace{0.25em} \noindent \textbf{q6.} \emph{Find all tuples of pedestrians (p1,p2) where p1 is behind p2 in the TrafficCam dataset}. This query is inspired from applications in robotics and navigation, where one has to estimate how far a given object is located from a camera. This problem, called depth prediction, has recently been a subject of research interest in computer vision~\cite{depthPredictModel}. We leverage the published code~\footnote{https://github.com/iro-cp/FCRN-DepthPrediction} and the pre-trained parameters to annotate all detected pedestrians in the TrafficCam dataset with depth predictions and find such pairs.
 
 \section{Experiments}
+\textbf{TODO: below all needs to be revised}
 We present results on the benchmark dataset and queries to illustrate some of the key open research challenges in the design of such systems.
 Our baseline is the dataflow query processing engine with no indexes.
 We compare this baseline to a hand-tuned version where we manually select the best physical design for a query.
@@ -61,7 +62,10 @@ Image processing algorithms are very compute intensive, so upstream operations t
 \end{figure}
 
 \subsection{Atypical Operator Costs}
-Cost-based optimizers rely on cost models Figure \ref{join}, 
+In cost-based query optimization, the optimizer uses a cost model to evaluate the cost of different query execution plans. We find that operators in \textsf{DeepLens} pose a few challenges for cost-based optimization. Figure \ref{join} illustrates the difficulties with the execution time of a Ball-Tree join as function of the size of the indexed relation in the high-dimensional and low-dimensional case. As the data structure is increasingly filled the execution time grows non-linearly. The non-linearity is also data-dependent and is more extreme in higher dimensional data. Accurately modeling the relationship between input relation size and operator cost is crucical for cost-based query optimization. The non-linearity of the data structure and the fact that the cost is CPU-bound makes it difficult to analytically model.
+The non-linearity also hurts in another way even if we had a perfect analytical model. Join ordering problems are known to be difficult when there are significant non-linearities. Non-linearites can sometimes encourage ``bushy'' joins.
+ 
+, 
 \textbf{TODO}
 
 \begin{figure}[t]
@@ -72,7 +76,6 @@ Cost-based optimizers rely on cost models Figure \ref{join},
 \end{figure}
 
 \subsection{Importance of Architecture}
-\textbf{TODO}
-\ref{build}
+Natually, GPUs and vectorization are an important concern \ref{build}
 
 
