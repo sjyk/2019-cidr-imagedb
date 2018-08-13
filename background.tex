@@ -1,0 +1,62 @@
+\section{Background and API}
+We noticed that the recent interest in visual analytics has mostly focused on optimizing the throughput of predictions on a single stream of images~\cite{anderson2018predicate, kang2018blazeit,kang2017noscope, wu2018querying, sparks2017keystoneml}.
+However, as a direct consequence of the rapid progress in computer vision, visual analytics workloads are becoming increasingly complex with requirements beyond this paradigm. 
+For example, it is not uncommon for visual perception pipelines in robotics to integrate predictions from multiple neural networks~\cite{hodson2018robots}.
+
+\red{Adam: I had a hard time parsing this part, made changes.}
+Existing pipelines are carefully designed
+%, often not event 
+but often not robust to changes in image resolution and can make significant assumptions about ordering of images and the structure of any associated metadata.
+This echoes the challenges of pre-relational days of database research before the idea of data independence.
+We want a unified model that substantially covers much of visual analytics that can allow us to leverage logical-physical separation principles that the database community has pioneered.
+
+\subsection{Patch Query Model}
+We start with a simple query model, where visual analytics queries are relational queries over collections of subimages (called patches) and associated metadata about how those subimages were generated.
+The query processing engine is agnostic to how those patches are generated.
+They can be whole images, smaller tiled subimages, or even subimages extracted by an object detection neural networks.
+In pseudocode, a \texttt{Patch} object contains a pointer to the image that generated it, the pixels contained in the patch, and a key-value metadata dictionary:
+\begin{lstlisting}
+Patch(ImgRef, Data, MetaData)
+\end{lstlisting}
+Inspired by dataflow systems, operators in the system implement iterators over tuples of \texttt{Patch} objects:
+\begin{lstlisting}
+Operator(Iterator<Tuple<Patch>> in, 
+         Iterator<Tuple<Patch>> out)
+\end{lstlisting}
+Lineage is maintained as every operator is required to update the \texttt{ImgRef} attribute to retain a lineage chain back to the original image.
+
+\subsection{Example 1}
+Consider a CCTV feed of a parking lot that collects and stores video.
+We want to evaluate the parking lot's utilization so we want to count the number of frames in the video that contain at least one car.
+We first run all of the frames through the SSD object detection network~\cite{liu2016ssd}, which returns bounding boxes and labels for common objects detected in the image.
+Each of these bounding boxes defines a patch:
+\begin{lstlisting}
+SSDPatch(Frame, Bbox, 
+         {'label': L, 'frameno': F })
+\end{lstlisting}
+Over these SSD patch objects, the query of interest is well expressed in relational algebra over the metadata dictionary (a filter over labels and an aggregation over frame numbers).
+
+\subsection{Example 2}
+Now, suppose we are given two videos from two different cameras, we want to find all cars that appear in both videos.
+The first step is exactly the same as the previous example, we break the frames up into \texttt{SSDPatch} objects.
+Over the two sets of \texttt{SSDPatch}, we need to compare all of the bounding boxes and return those that are sufficiently similar in terms of image content.
+What is different about this query is that it leverages both the metadata and the pixel data in the bounding boxes.
+
+What struck us as interesting about this query is that there are a number of unresolved questions about how to actually process it efficiently.
+Naively, one could compare all pairs of bounding boxes and then return those of sufficient image similarity.
+Most image matching algorithms use lower dimensional features to match, so another option is to pre-compute the relevant features and build a multidimensional index over one of the sets of \texttt{SSDPatch} objects, e.g., a KD-Tree over a set of color histograms.
+
+Additionally, what if we knew that the target vehicle was red.
+It is not clear whether we would want to eagerly apply that predicate. 
+The predicate is likely CPU intensive and if the matching step has a low selectivity, it might be beneficial to apply the predicate after matching.
+These questions motivated us to design a DBMS-like framework to answer these sorts of queries.
+
+\red{Adam: This is a very interesting task. I would extract all vehicles from both videos as patches. Then for each video separately, I would cluster the vehicles (patches), so that a given vehicle is included only in a single cluster. Then I would compare the clusters from botch videos. This could be done by a join of two tables, where each table represents a set of clusters for each video.
+
+
+
+
+
+
+
+
