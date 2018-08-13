@@ -64,9 +64,6 @@ Image processing algorithms are very compute intensive, so upstream operations t
 \subsection{Atypical Operator Costs}
 In cost-based query optimization, the optimizer uses a cost model to evaluate the cost of different query execution plans. We find that operators in \textsf{DeepLens} pose a few challenges for cost-based optimization. Figure \ref{join} illustrates the difficulties with the execution time of a Ball-Tree join as function of the size of the indexed relation in the high-dimensional and low-dimensional case. As the data structure is increasingly filled the execution time grows non-linearly. The non-linearity is also data-dependent and is more extreme in higher dimensional data. Accurately modeling the relationship between input relation size and operator cost is crucical for cost-based query optimization. The non-linearity of the data structure and the fact that the cost is CPU-bound makes it difficult to analytically model.
 The non-linearity also hurts in another way even if we had a perfect analytical model. Join ordering problems are known to be difficult when there are significant non-linearities. Non-linearites can sometimes encourage ``bushy'' joins.
- 
-, 
-\textbf{TODO}
 
 \begin{figure}[t]
 % \vspace{-5pt}
@@ -76,6 +73,6 @@ The non-linearity also hurts in another way even if we had a perfect analytical 
 \end{figure}
 
 \subsection{Importance of Architecture}
-Natually, GPUs and vectorization are an important concern \ref{build}
+Compute-bound operations are, by nature, sensitive to the underlying system architecture and execution engine. Figure \ref{build} plots the processing time on each of the six benchmark queries for a vanilla CPU implementation (CPU), a vectorized neural network implementation (AVX), and a GPU implementation (GPU). Just by changing the underlying execution architecture there were up-to 12x changes in execution time. 
 
 
