@@ -59,13 +59,27 @@ In general, image processing algorithms are very compute intensive, so upstream 
  \caption{We evaluate the pipeline runtime, including ETL and index creation, for an optimized \textsf{DeepLens} (red) vs. the baseline (black). On many queries it is beneficial to materialize intermediate results and build indexes to speed up future performance. Indexing has a relatively small overhead given the compute-intensive nature of the queries. \label{index} }
 \end{figure}
 
+\begin{figure}[t]
+% \vspace{-5pt}
+\centering
+ \includegraphics[width=0.8\columnwidth]{figures/indexing.png}
+ \caption{Building multidimensional indexes can be very costly and initial experiments indicate that construction time scales poorly with data. \label{indexbuild} }
+\end{figure}
+
 \subsection{Overhead For Indexing}
 One might think that persisting an index incurs a large overhad; however, it is small relative to the compute cost of the entire pipeline including the ETL.
 Even disregarding the fact that indexes can be reused by other queries and their cost amortizes, several of the queries execute faster even if the indexes are built ``on-the-fly'' (Figure \ref{index}).
 For example, q1 executes nearly 5 times faster than the baseline and q4 executes 3.5 times faster than the baseline.
 As with the previous results, this is largely due to the compute-intensive nature of those queries.
 The index significantly reduces the number of image matching operations which dominate the runtime, and thus, the cost of building and persisting the index is offset.
-The indexes with largest overhead to build are the spatial indexes, and we hope to explore more efficient indexing strategies in future work.
+
+The indexes with largest overhead to build are the spatial indexes.
+Figure \ref{indexbuild} plots the construction time of the multidimensional and single dimensional indexes supported in \textsf{DeepLens} as a function of the number of tuples indexed.
+The R-Tree is nearly 20x slower to construct than a B+ Tree.
+However, there are some mitigating factors that are interesting to consider in future work.
+Since visual analytics is approximate by nature, perhaps exact multidimensional indexing is unnecessary. 
+For some workloads may suffice to apply single dimensional indices and merge results with independence assumptions.
+For others, locality sensitive hashing or similar approximations may suffice.
 
 \begin{figure}[t]
 % \vspace{-5pt}
@@ -73,7 +87,6 @@ The indexes with largest overhead to build are the spatial indexes, and we hope 
  \includegraphics[width=\columnwidth]{figures/spatialjoin.png}
  \caption{We evaluate the execution time of a Ball-Tree join as function of the size of the indexed relation in the high-dimensional and low-dimensional case. As the data structure is increasingly filled the execution time grows non-linearly. \red{What is the scale of the input data on the x axis- KB, MB?}  \label{join} }
 \end{figure}
-
 
 
 \subsection{Cost-Based Optimization}
@@ -85,7 +98,7 @@ Figure \ref{join} illustrates the difficulties with the execution time of a Ball
 \begin{figure}[t]
 % \vspace{-5pt}
 \centering
- \includegraphics[width=\columnwidth]{figures/build.png}
+ \includegraphics[width=0.8\columnwidth]{figures/build.png}
  \caption{The execution architecture has a considerable impact on the processing time.  \label{build} }
 \end{figure}
 
