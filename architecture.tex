@@ -30,7 +30,7 @@ In \textsf{DeepLens},  images reside in a filesystem or can be sampled from comm
 \noindent \textbf{Materialize (Load): } We can load transformed data into a persistent storage which allows us to query the results of the pipeline.
 
 \subsection{Persistent Storage}
-The persistent storage is implemented with BerkeleyDB\footnote{Implemented with Python bsddb3.}. The image and feature data is serialized in a binary format before insertion. By default, the \texttt{Patches} are stored in a sorted file by record number (or frame number for videos). This is because many queries of interest examine particular time segments of videos.
+The persistent storage is implemented with BerkeleyDB\footnote{Implemented with bsddb3 (Python binding for BerkeleyDB)}. The image and feature data is serialized in a binary format before insertion. By default, the \texttt{Patches} are stored in a sorted file by record number (or frame number for videos). This is because many queries of interest examine particular time segments of videos.
 The sorted file allows for quick retrieval of temporal predicates.
 
 \vspace{0.25em}
@@ -56,6 +56,6 @@ Many visual analytics tasks of interest relate processed results back to the bas
 For example, we might process a single set of images in two different ways, e.g., segmenting the image with an object detector and using a depth prediction model to determine relative distance between pixels.
 To relate these two results we need to be able to execute queries similar to those in lineage systems~\cite{psallidas2018smoke}. 
 \textsf{DeepLens} natively tracks tuple-level lineage.
-Every \texttt{Patch} objects relationship to the base data from which it was derived is maintained.
+Every \texttt{Patch} object relationship to the base data from which it was derived is maintained.
 For example, bounding boxes that are derived can be overlayed on the original images or video.
 This information is stored as attributes in the metadata key-value dictionary so indexes and queries can be natively supported on them.

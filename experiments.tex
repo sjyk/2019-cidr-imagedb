@@ -15,7 +15,7 @@ We propose a benchmark workload of 6 queries on these datasets to evaluate \text
 
 \vspace{0.25em} \noindent \textbf{q1.} \emph{Find all near-duplicates in the PC dataset}. This query is inspired by classical multimedia information retrieval problems such as reverse image search (find the closest image to a query image). 
 
-\vspace{0.25em} \noindent \textbf{q2.} \emph{Count all of the frames with at least one vehicle present in the TrafficCam dataset}. This query is inspired by recent work that uses neural networks to analyze traffic and movement patterns. This is a simple query that takes the output of a neural network that identifies objects in the frame and simply queries the output.
+\vspace{0.25em} \noindent \textbf{q2.} \emph{Count all of the frames with at least one vehicle present in the TrafficCam dataset}. This query is inspired by recent work that uses neural networks to analyze traffic and movement patterns~\cite{kang2017noscope}. This is a simple query that takes the output of a neural network that identifies objects in the frame and simply queries the output.
 
 \vspace{0.25em} \noindent \textbf{q3.} \emph{Track one player's trajectory in every play in the Football dataset}. Given segmentation output that identifies a player in frame and OCR output that identifies a number if one is visible, we have to relate that sequence of bounding boxes back to the original image.
 
@@ -35,21 +35,21 @@ We compare this baseline to a hand-tuned version where we manually select the be
 % \vspace{-5pt}
 \centering
  \includegraphics[width=\columnwidth]{figures/indexing1.png}
- \caption{On-the-fly index creation is beneficial. We evaluate the pipeline runtime, including ETL and index creation, for an optimized \textsf{DeepLens} (red) vs. the baseline (black). On many queries it is beneficial to materialize intermediate results and build indexes to speed up future performance. \label{index} }
+ \caption{On-the-fly index creation is beneficial. We evaluate the pipeline runtime, including ETL and index creation, for an optimized \textsf{DeepLens} (red) vs. the baseline (black). On many queries it is beneficial to materialize intermediate results and build indexes to speed up future performance. \red{The legend is unclear - Query and processing have almost the same background color - we should change it to more distinctive ones, e.g. blue and green with some patterns.} \label{index} }
 \end{figure}
 
 \begin{figure}[t]
 % \vspace{-5pt}
 \centering
  \includegraphics[width=\columnwidth]{figures/query.png}
- \caption{\textsf{DeepLens} significantly speeds up ``query time''.  \label{query} }
+ \caption{\textsf{DeepLens} significantly speeds up ``query time'' after building the indexes off-line.  \label{query} }
 \end{figure}
 
 \subsection{On-the-fly Indexing}
 In most RDBMS, we usually consider index creation as an offline task that can amortize its benefits over an entire workload.
 One surpsrising result is that for many visual analytics queries, on-the-fly index creation is beneficial (Figure \ref{index}), where materializing and indexing intermediate results reduces the execution time of future stages.
 For example, q1 executes nearly 5 times faster than the baseline and q4 executes 3.5 times faster than the baseline.
-If consider just the execution times of those stages following indexing (Figure \ref{query}), these improvements increase to up-to 612x for q4 and 59x for q1. 
+If we consider only the execution times of those stages following indexing (Figure \ref{query}), these improvements increase to up-to 612x for q4 and 59x for q1. 
 These queries benefit the most since they run all-pairs image comparisons. 
 These comparisons are CPU-bound, and in fact, for q1 it completely fits in memory.
 Image processing algorithms are very compute intensive, so upstream operations that can reduce the number of future numerical comparisons can very significantly reduce the execution time of queries.
@@ -58,7 +58,7 @@ Image processing algorithms are very compute intensive, so upstream operations t
 % \vspace{-5pt}
 \centering
  \includegraphics[width=\columnwidth]{figures/spatialjoin.png}
- \caption{We evaluate the execution time of a Ball-Tree join as function of the size of the indexed relation in the high-dimensional and low-dimensional case. As the data structure is increasingly filled the execution time grows non-linearly.  \label{join} }
+ \caption{We evaluate the execution time of a Ball-Tree join as function of the size of the indexed relation in the high-dimensional and low-dimensional case. As the data structure is increasingly filled the execution time grows non-linearly. \red{What is the scale of the input data on the x axis- KB, MB?}  \label{join} }
 \end{figure}
 
 \subsection{Atypical Operator Costs}
