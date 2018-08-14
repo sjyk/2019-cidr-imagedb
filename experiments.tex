@@ -1,4 +1,4 @@
-\section{Benchmark Datasets and Workload}
+\section{Benchmark Datasets and \\  Workload}
 We briefly discuss how we designed the benchmark datasets and corresponding workload.
 
 \subsection{Datasets}
@@ -54,9 +54,9 @@ In general, image processing algorithms are very compute intensive, so upstream 
 \begin{figure}[t]
 % \vspace{-5pt}
 \centering
- \includegraphics[width=0.48\columnwidth]{figures/indexing_a.png}
- \includegraphics[width=0.48\columnwidth]{figures/indexing_b.png}
- \caption We evaluate the pipeline runtime, including ETL and index creation, for an optimized \textsf{DeepLens} (red) vs. the baseline (black). On many queries it is beneficial to materialize intermediate results and build indexes to speed up future performance. Indexing has a relatively small overhead given the compute-intensive nature of the queries. \label{index} }
+ \includegraphics[width=0.6\columnwidth]{figures/indexing_a.png}
+ \includegraphics[width=0.6\columnwidth]{figures/indexing_b.png}
+ \caption{We evaluate the pipeline runtime, including ETL and index creation, for an optimized \textsf{DeepLens} (red) vs. the baseline (black). On many queries it is beneficial to materialize intermediate results and build indexes to speed up future performance. Indexing has a relatively small overhead given the compute-intensive nature of the queries. \label{index} }
 \end{figure}
 
 \subsection{Overhead For Indexing}

@@ -63,7 +63,7 @@ We briefly discuss possible architectures that one could use for a VDMS without 
 
 \vspace{0.5em} \noindent \textbf{RDBMS: } Another idea is to load all of the data into a Relational Database upfront--or the ``Postgres SQL approach''. There are several issues with this approach. First, we the image transformations that occur would have to occur outside of the system incurring loading and storing overheads. Second, lineage information would have to be tracked externally. Third, such systems are not tuned for a workload that consists of $\theta$-joins and a significant amount of binary data.
 
-\vspace{0.5em}  \noindent \textbf{End-to-End Learning: } The computer vision community has gone a different direction altogether with an end-to-end learning approach in an area called visual question answering. Here, queries and answers are fed into the system as training data (the system learns to predict the answer from the query and some images). The results have yet to demonstrate success at scale on natural images. 
+\vspace{0.5em}  \noindent \textbf{End-to-End Learning: } The computer vision community has gone a different direction altogether with an end-to-end learning approach in an area called visual question answering~\cite{ganju2017s}. Here, queries and answers are fed into the system as training data (the system learns to predict the answer from the query and some images). The results have yet to demonstrate success or reliability at scale. 
 
 
 
