@@ -5,7 +5,7 @@
  \caption{DeepLens has a dataflow-like architecture for processing visual analytics queries. All analysis is cast as relational queries on relations of image patches. Intermediate results can be materialized and indexed.  \label{teaser} }
 \end{figure}
 
-\section{Architecture}
+\section{DeepLens Architecture}
 \textsf{DeepLens} is designed like a dataflow query processing system~\cite{graefe1994volcano}.
 Figure \ref{teaser} illustrates the basic architecture with three main layers: (1) ETL, (2) Persistent Storage, and (3) Query Processing.
 There are access methods which point to iterators over images derived from a filesystem or sampled from a video stream. The image dataflow is passed into a  \textbf{patch generator} that turns the image into a set of patches. Associated with each patch is a key-value dictionary storing metadata about how the patch was generated and any property of the patch. The patches are then fed into a composition of \textbf{transformers} that featurize, compress, or otherwise store detected properties of the patches into the dictionary. Over tuples of transformed patches, users can build a directed computation graph with \textbf{operators} (e.g., select, join).
@@ -20,8 +20,6 @@ In \textsf{DeepLens},  images reside in a filesystem or can be sampled from comm
 
 \vspace{0.25em}
 \noindent \textbf{Patch Generators (Extract): } As described in both examples in the previous section, we provide a library of \texttt{Patch Generators} with common primitives like object segmentation, color segmentation, and tiling. These generators take as input an iterator over raw images and return an iterator over \texttt{Patch} objects.
-
-
 
 \vspace{0.25em}
 \noindent \textbf{Transformers (Transform): } As described in the second example in the previous section, sometimes it suffices to store and process featurized representations. We provide a library of transformers with common primitives like features derived from pre-trained neural networks, image signatures, and histograms. These features can be used for matching or other types of downstream processing.
