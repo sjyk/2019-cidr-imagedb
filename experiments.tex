@@ -54,8 +54,8 @@ In general, image processing algorithms are very compute intensive, so upstream 
 \begin{figure}[t]
 % \vspace{-5pt}
 \centering
- \includegraphics[width=0.48\columnwidth]{figures/indexing_b.png}
- \includegraphics[width=0.48\columnwidth]{figures/indexing_a.png}
+ \includegraphics[width=0.46\columnwidth]{figures/indexing_b.png}
+ \includegraphics[width=0.49\columnwidth]{figures/indexing_a.png}
  \caption{We evaluate the pipeline runtime, including ETL and index creation, for an optimized \textsf{DeepLens} (red) vs. the baseline (black). On many queries it is beneficial to materialize intermediate results and build indexes to speed up future performance. Indexing has a relatively small overhead given the compute-intensive nature of the queries. \label{index} }
 \end{figure}
 
@@ -73,6 +73,8 @@ The indexes with largest overhead to build are the spatial indexes, and we hope 
  \includegraphics[width=\columnwidth]{figures/spatialjoin.png}
  \caption{We evaluate the execution time of a Ball-Tree join as function of the size of the indexed relation in the high-dimensional and low-dimensional case. As the data structure is increasingly filled the execution time grows non-linearly. \red{What is the scale of the input data on the x axis- KB, MB?}  \label{join} }
 \end{figure}
+
+
 
 \subsection{Cost-Based Optimization}
 To avoid a large library of hand-written rules, the natural question to ask is whether it is possible to build a cost-based query optimizer for this system.
