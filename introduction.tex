@@ -1,63 +1,59 @@
 \section{Introduction}\label{intro}\sloppy
-Images and video are the frontier of modern data management with hundreds of hours of video uploaded to YouTube every minute, the immense data generated from CCTV footage, and a possible future with autonomous driving. There has been recent interest in visual analytics (VA)~\cite{anderson2018predicate, kang2018blazeit,kang2017noscope, wu2018querying, sparks2017keystoneml}, where the visual content of the videos is analyzed.
-The growing maturity of neural networks for image prediction and segmentation problems has made this an attractive and inter-discplinary field of study; bringing together systems research and large-scale machine learning.
+Images and video are the frontier of modern data management.
+The potential scale is enormous with hundreds of hours of video uploaded to YouTube every minute, the immense data generated from CCTV footage, and a possible future with data collected from autonomous driving. 
+Recent advances in deep learning for computer vision have greatly increased the scope of \emph{visual analytics}, where the visual content of the images and videos can be analyzed.
+In the last two years, there are a handful of systems that have explored scaling visual analytics pipelines to larger and/or faster streams of data~\cite{anderson2018predicate, kang2018blazeit,kang2017noscope, wu2018querying, sparks2017keystoneml}.
 
-While it is natural to connect this recent interest with prior work on multimedia databases~\cite{yoshitaka1999survey}, the recent instantiations of VA systems only loosely borrow from past architectural designs. Current types of architecture suffice since the focus has been on relatively simple analytics tasks. 
-As a concrete example, consider the problem of finding all images that contain a vehicle.
-One can stream videos or static images through  Mask-RCNN~\cite{he2017mask}, which is a neural network that returns a set of segmentation masks and classifications of those segmentations from a discrete set of labels (e.g., vehicle, person, cat). 
-From those predictions, one can simply filter all predictions that match the desired labels.
-Answering such queries is mostly bottlenecked by neural network inference.
+An archetypal visual analytics task is to find all images in a corpus that contain a certain object, e.g., detecting vehicles in traffic camera data.
+The proliferation of neural network-based object detection models have made such tasks feasible in the last two years~\cite{he2017mask}.
+These models not only identify if an image contains a certain object but also return a segmentation mask (a subimage cropped around the boundaries of all instances of the object in the image).
+These object detection models can be pre-trained on vast corpora of offline annotated data\footnote{For example, http://cocodataset.org/} and then can be deployed on unseen images or video frames to find those that have vehicles present.
 
-\red{ae: at some point early should we introduce a system term like VDMS and outline the data model?}
+It is worth noting the analogies between this visual analytics pipeline and traditional data analysis methodology.
+The raw images and video data are similar to unstructured data, and the object detection model is like a data extraction algorithm that returns a structured output (segmentations and discrete object classes).
+Over this structured output, we filter for those images that contain the object of interest.
+We found this design pattern to be suprisingly general across a number of visual analytics tasks of interest: there is an ``ETL'' phase where one or more models is used to construct structured outputs and then there is a ``query'' phase where queries are executed over those structured outputs.
+This paper takes the position that a relational data model can greatly simplify the user-facing programming interface to scale visual analytics to more complex tasks.
 
-\begin{figure}[t]
-% \vspace{-5pt}
-\centering
- \includegraphics[width=\columnwidth]{figures/teaser.png}
- \caption{DeepLens has a dataflow-like architecture for processing visual analytics queries. All analysis is cast as relational queries on relations of image patches. Intermediate results can be materialized and indexed.  \label{teaser} }
-\end{figure}
+To understand why this might be interesting, consider a marginally harder query than the one before: \emph{given two videos find all objects that appear in both videos}.
+Answering such a query is not simply a question of evaluating a filter along each stream of images.
+One has to find all the objects in both videos and then match them against each other.
+Efficiently answering this sort of query raises questions about physical design (should one build an index of frames with the object), query optimization (which video to scan and which index to use), and compression (can the query be answered from features instead of raw frames).
+In the design of traditional relational databases, the data and query model allows us to separate physical and logical concerns--abstracting many of these questions from the end user.
+We would like to offer the same for visual analytics tasks, where low-level concerns are abstracted away. 
 
-Now, consider a marginally harder query: \emph{given two videos find all vehicles that appear in both videos}.
-Answering such a query is not simply a question of evaluating a predicate along each stream of images.
-One has to first find all the vehicles in both videos and then match them against each other.
-Efficiently answering this sort of query raises questions about physical design (should one build an index of frames with cars), query optimization (which video to scan and which index to use), and compression (can the query be answered from features instead of raw frames).
-For traditional data, DBMS systems automatically handle many of these questions, and ideally, VA systems should do so as well.
+While a true Visual Data Management System (VDMS) is the ultimate goal, we found there are still several key gaps in understanding the tradeoffs and performance of such systems. 
+We start with a simple query model, where visual analytics queries are relational queries over collections of subimages (called patches) and associated metadata about how those subimages were generated.
+We built a research prototype system, called \textsf{DeepLens}, to implement this query model and a number of additional features such as an ETL layer, storage layer, indexing, and query processing. 
+We evaluated this system on a benchmark of 6 visual analytics tasks over 3 datasets and use the experiments to elicit some of the key open research challenges.
+To summarize our key lessons learned:
 
-This paper takes the position that a relational data model can greatly simplify the user-facing programming interface to scale VA to more complex tasks.
-We revisit the idea of a multimedia database in the era of deep learning. 
-This database can load corpora of images, videos and answer semantic queries about the content in these videos based on a library of computer vision algorithms that segment, annotate, and process images.
-We start with a ``green field'' architectural design and built a prototype system, called \textsf{DeepLens}, which implements an ETL layer, storage layer, indexing, and query processing.
-\red{ae: not clear why relational is the right data model at this point, what parts of it are being borrowed?} 
+\vspace{0.75em} \noindent \emph{Lesson 1. Explosion of physical design choices. } A successful VDMS will have to manage both single-dimensional indexes (e.g., B+ Trees) and geometric indices (e.g., KD-Trees). We found that index usage was critical and could improve performance by up-to 612x, especially on queries that compared two collections of pixel data to each other.
+Particularly for the geometric indices, the size and dimensionality of the data plays a key role in what index to use. Changes to the extraction pipeline, such as new type of image featurization, may lead to substantial and unpredictable changes in index performance.
+Automated tools for physical design such as~\cite{sharma2018case,pavlo2017self} will be crucial.
 
-
-
-\textsf{DeepLens} is designed similarly to a dataflow query processing system~\cite{graefe1994volcano}. There are access methods which point to iterators over images derived from a filesystem or sampled from a video stream. The image dataflow is passed into a  \textbf{patch generator} that turns the image into a set of patches either by fixed or semantic criteria.\red{Adam: What are the fixed criteria?} Associated with each patch is a key-value dictionary. \red{Adam: Is the dictionary mapping from a property of the patch to its value, e.g. the property being a size of the patch and the value being its width and height, or a property being a source image and the value being a path or id of the source image?} The patches are then fed into a composition of \textbf{transformers} that featurize, compress, or otherwise store detected properties of the patches into the dictionary. Over tuples of transformed patches, users can build a directed computation graph with \textbf{operators} (e.g., select, join).
-The patch abstraction defines a closed-algebra where the input is a patch and the output is a patch for all of the operators.
-Furthermore, tuple-level lineage is automatically maintained by the system allowing any downstream patch to be associated with its base data.
-Any of the intermediate results can be \textbf{materialized} and can be stored in clustered and unclustered formats. \red{What are the clustered and unclastered formats? Maybe a citation could be added here?}
-Furthermore, indexes can be built on any materialized data, either the key-value attributes or the image data.
-We show that this model is sufficient to describe a large number of visual analytics tasks.
-
-
-We present initial experimental results on these components to elicit some of the key open research challenges. To summarize our key lessons learned:
-
-\vspace{0.5em}
-
-\noindent \emph{Lesson 1. Image data is unstructured data. } Semantics from images have to be first extracted with computer vision algorithms before structured queries can be executed. We found that many VA queries can be formulated as different types of joins and filters on the outputs of these algorithms and relating those results back to the base data. \textsf{DeepLens} includes an ETL component in which different types of computer vision algorithms can run and maintains provenance to the original image or video. This ETL component also modulates the accuracy of the system where image resolution and frame sampling rates can be controlled.      
-
-\vspace{0.5em}
-
-\noindent \emph{Lesson 2. True multimedia queries vs. easy queries. }
-Queries that have to relate structured outputs to pixel data in the images are challenging to process. This is because we have to mix different physical design paradigms to answer such queries. Structured outputs such as label predictions can be indexed with hash tables and B+ Trees. However, pixel data is multi-dimensional and is best indexed with spatial indexes. Sometimes that pixel data is position (x,y pixel values) and can easily be stored in an R-Tree or similar structures. In other cases, the pixel data is a featurized fingerprint (e.g., reverse image search) and requires a structure optimized for higher dimensional dense vector data like a KD-Tree. Deciding which indexes to create is very workload specific.
-
-
-\vspace{0.5em}
-
-\noindent \emph{Lesson 3. Almost all processes are compute-limited. }
+\vspace{0.5em} \noindent \emph{Lesson 2. Almost all processes are compute-limited. }
 Image processing algorithms are very compute intensive. This differs from classical DBMS models where IO costs are dominant. 
 Many classical indexing, query processing, and query optimization frameworks are designed with IO-limited models in mind.
-In a compute-limited world, there is a new space of optimization that can be explored.
-In \textsf{DeepLens}, we present a data-skipping framework that skips processing after a page has been loaded into memory. For example, suppose we have an expensive neural-network classifier UDF \texttt{isRedCar(image)}, images that do not have a sufficient number of red pixels can be discarded upfront before evaluating the expensive predicate. We also discuss the implications of compute-limited processes on query optimization and physical design.
+In a compute-limited world, there is a new space of optimizations that can be explored.
+For example, our experiments found that creating disk-based indexes on-the-fly could substantially improve performance since the benfit of reducing comparisons downstream significantly outweighs the I/O overhead.
+On the other hand, we found that join costs in image matching problems were unpredictable, non-linear, and sensitive to the particular chipset (GPU, Vectorization, Vanilla CPU).
+This poses a challenge for cost-based query optimization and envision that new results in learning-based query optimization~\cite{kaftan2018cuttlefish,krishnan2018deeprljoins} will be a key part of any VDMS.
+
+\vspace{0.5em} \noindent \emph{Lesson 3. Native support for lineage queries. } Semantics from images have to be first extracted with computer vision algorithms before structured queries can be executed. We found that many VA queries can be formulated as different types of joins and filters on the outputs of these algorithms and relating those results back to the base data. For example, finding a set of segmentation masks that satisfy a certain criteria and then overlaying them on the original image.
+\textsf{DeepLens} natively maintains tuple-level lineage to the original image or video after any extraction or transformation. This lineage is stored in the datastore and can be indexed and queried like any data--leading to a 60x improvement in one benchmark query.
+This idea is in the spirit of recent work in lineage management system such as~\cite{psallidas2018smoke}.
+
+
+\vspace{0.75em}
+
+While it is natural to connect recent interest in visual analytics with prior work on multimedia databases~\cite{yoshitaka1999survey}, the recent instantiations of visual analytics systems only loosely borrow from past architectural designs.
+We argue that as the scope of  visual analytics increases, scaling requires leveraging classical ideas from relational data management--as seen in the past with multimedia databases.
+However, the tasks that we evaluate are significantly higher dimensional (images featurized by 1000 of dimensions) than ones considered in the past either in Geospatial databases or Multimedia databases.
+We also consider an integrated image ingest and pre-processing pipeline into the system and maintain provenance to the raw data. 
+These differences aside, the main core component is the same: a restricted data and query model over which physical and logical operators are well defined.
+This way we can leverage the principles of design from relational database management systems and apply them to VDMS.
+
 
 
 
