@@ -26,33 +26,46 @@ We propose a benchmark workload of 6 queries on these datasets to evaluate \text
 \vspace{0.25em} \noindent \textbf{q6.} \emph{Find all tuples of pedestrians (p1,p2) where p1 is behind p2 in the TrafficCam dataset}. This query is inspired from applications in robotics and navigation, where one has to estimate how far a given object is located from a camera. This problem, called depth prediction, has recently been a subject of research interest in computer vision~\cite{depthPredictModel}. We leverage the published code~\footnote{https://github.com/iro-cp/FCRN-DepthPrediction} and the pre-trained parameters to annotate all detected pedestrians in the TrafficCam dataset with depth predictions and find such pairs.
 
 \section{Experiments}
-\textbf{TODO: below all needs to be revised}
 We present results on the benchmark dataset and queries to illustrate some of the key open research challenges in the design of such systems.
-Our baseline is the dataflow query processing engine with no indexes.
-We compare this baseline to a hand-tuned version where we manually select the best physical design for a query.
 
-\begin{figure}[t]
-% \vspace{-5pt}
-\centering
- \includegraphics[width=\columnwidth]{figures/indexing1.png}
- \caption{On-the-fly index creation is beneficial. We evaluate the pipeline runtime, including ETL and index creation, for an optimized \textsf{DeepLens} (red) vs. the baseline (black). On many queries it is beneficial to materialize intermediate results and build indexes to speed up future performance. \label{index} }
-\end{figure}
 
 \begin{figure}[t]
 % \vspace{-5pt}
 \centering
  \includegraphics[width=\columnwidth]{figures/query.png}
- \caption{\textsf{DeepLens} significantly speeds up ``query time''.  \label{query} }
+ \caption{\textsf{DeepLens} significantly speeds up ``query time'' by using indexes.  \label{query} }
 \end{figure}
 
-\subsection{On-the-fly Indexing}
-In most RDBMS, we usually consider index creation as an offline task that can amortize its benefits over an entire workload.
-One surpsrising result is that for many visual analytics queries, on-the-fly index creation is beneficial (Figure \ref{index}), where materializing and indexing intermediate results reduces the execution time of future stages.
+\subsection{The Power of Indexes}
+The first question is how valuable indexes are for our benchmark dataset.
+Figure \ref{query} plots the query times with and without indexing.
+Our baseline is the dataflow query processing engine with no indexes.
+We compare this baseline to a hand-tuned version where we manually select the best physical design for a query.
+
+The queries that benfit the most from the indexes are ones that require image matching, up-to 612x faster for q4 and 59x faster for q1. Some queries have improvements since they leverage the lineage information and do not need to rescan the base data. q3 requires a backtracing query to match the bounding boxes and the OCR output in pixels on the original image and has a 41x improvement. Similarly, q6 runs 2.5x faster. q5 is illustrative of a query whose predicate does not benefit from any of the available indexes.
+
+What is interesting about these improvements also illustrate the compute-bound nature of these queries.
+For q1, all of the images can fit in memory.
+However, the all pairs similarity comparison can be very slow.
+Building a Ball-tree over one side of the join and probing with the other is a much faster approach as it reduces the number of comparisons needed.
+In general, image processing algorithms are very compute intensive, so upstream operations that can reduce the number of future numerical comparisons can very significantly reduce the execution time of queries.
+
+
+\begin{figure}[t]
+% \vspace{-5pt}
+\centering
+ \includegraphics[width=0.48\columnwidth]{figures/indexing_a.png}
+ \includegraphics[width=0.48\columnwidth]{figures/indexing_b.png}
+ \caption We evaluate the pipeline runtime, including ETL and index creation, for an optimized \textsf{DeepLens} (red) vs. the baseline (black). On many queries it is beneficial to materialize intermediate results and build indexes to speed up future performance. Indexing has a relatively small overhead given the compute-intensive nature of the queries. \label{index} }
+\end{figure}
+
+\subsection{Overhead For Indexing}
+One might think that persisting an index incurs a large overhad; however, it is small relative to the compute cost of the entire pipeline including the ETL.
+Even disregarding the fact that indexes can be reused by other queries and their cost amortizes, several of the queries execute faster even if the indexes are built ``on-the-fly'' (Figure \ref{index}).
 For example, q1 executes nearly 5 times faster than the baseline and q4 executes 3.5 times faster than the baseline.
-If consider just the execution times of those stages following indexing (Figure \ref{query}), these improvements increase to up-to 612x for q4 and 59x for q1. 
-These queries benefit the most since they run all-pairs image comparisons. 
-These comparisons are CPU-bound, and in fact, for q1 it completely fits in memory.
-Image processing algorithms are very compute intensive, so upstream operations that can reduce the number of future numerical comparisons can very significantly reduce the execution time of queries.
+As with the previous results, this is largely due to the compute-intensive nature of those queries.
+The index significantly reduces the number of image matching operations which dominate the runtime, and thus, the cost of building and persisting the index is offset.
+The indexes with largest overhead to build are the spatial indexes, and we hope to explore more efficient indexing strategies in future work.
 
 \begin{figure}[t]
 % \vspace{-5pt}
@@ -61,9 +74,11 @@ Image processing algorithms are very compute intensive, so upstream operations t
  \caption{We evaluate the execution time of a Ball-Tree join as function of the size of the indexed relation in the high-dimensional and low-dimensional case. As the data structure is increasingly filled the execution time grows non-linearly.  \label{join} }
 \end{figure}
 
-\subsection{Atypical Operator Costs}
-In cost-based query optimization, the optimizer uses a cost model to evaluate the cost of different query execution plans. We find that operators in \textsf{DeepLens} pose a few challenges for cost-based optimization. Figure \ref{join} illustrates the difficulties with the execution time of a Ball-Tree join as function of the size of the indexed relation in the high-dimensional and low-dimensional case. As the data structure is increasingly filled the execution time grows non-linearly. The non-linearity is also data-dependent and is more extreme in higher dimensional data. Accurately modeling the relationship between input relation size and operator cost is crucical for cost-based query optimization. The non-linearity of the data structure and the fact that the cost is CPU-bound makes it difficult to analytically model.
-The non-linearity also hurts in another way even if we had a perfect analytical model. Join ordering problems are known to be difficult when there are significant non-linearities. Non-linearites can sometimes encourage ``bushy'' joins.
+\subsection{Cost-Based Optimization}
+To avoid a large library of hand-written rules, the natural question to ask is whether it is possible to build a cost-based query optimizer for this system.
+In cost-based query optimization, the optimizer uses a cost model to evaluate the cost of different query execution plans. We find that operators in \textsf{DeepLens} pose a few challenges for cost-based optimization. 
+
+Figure \ref{join} illustrates the difficulties with the execution time of a Ball-Tree join as function of the size of the indexed relation in the high-dimensional and low-dimensional case. As the data structure is increasingly filled the execution time grows non-linearly. The non-linearity is also data-dependent and is more extreme in higher dimensional data. Accurately modeling the relationship between input relation size and operator cost is crucical for cost-based query optimization. Non-linearities are also known to affect standard join ordering heuristics.
 
 \begin{figure}[t]
 % \vspace{-5pt}
@@ -72,7 +87,6 @@ The non-linearity also hurts in another way even if we had a perfect analytical 
  \caption{The execution architecture has a considerable impact on the processing time.  \label{build} }
 \end{figure}
 
-\subsection{Importance of Architecture}
-Compute-bound operations are, by nature, sensitive to the underlying system architecture and execution engine. Figure \ref{build} plots the processing time on each of the six benchmark queries for a vanilla CPU implementation (CPU), a vectorized neural network implementation (AVX), and a GPU implementation (GPU). Just by changing the underlying execution architecture there were up-to 12x changes in execution time. 
+Compute-bound operations are also, by nature, sensitive to the underlying system architecture and execution engine. Figure \ref{build} plots the processing time on each of the six benchmark queries for a vanilla CPU implementation (CPU), a vectorized neural network implementation (AVX), and a GPU implementation (GPU). Just by changing the underlying execution architecture there were up-to 12x changes in execution time. 
 
 

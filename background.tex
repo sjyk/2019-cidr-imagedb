@@ -2,13 +2,18 @@
 Recent work in visual analytics has mostly focused on optimizing the throughput of predictions on a single stream of images~\cite{anderson2018predicate, kang2018blazeit,kang2017noscope, wu2018querying, sparks2017keystoneml}.
 However, as a direct consequence of the rapid progress in computer vision, visual analytics workloads are becoming increasingly complex with requirements beyond this paradigm. 
 For example, it is not uncommon for visual perception pipelines in robotics to integrate predictions from multiple neural networks~\cite{hodson2018robots}.
+In security and tracking applications, matching objects in two different videos is a crucial task.
 
-We were interested in how practitioners manage and merge predictions from these increasingly complex pipelines. 
-We found that existing pipelines are carefully designed and often not robust to changes in image resolution. They can make significant assumptions about ordering of images and the structure of any associated metadata (e.g., adding a new prediction label).
+\emph{Joining information from two or more visual data streams is a main challenge in VDMS.}
+Without a unified data and query model, implementing ones own join strategies is a recipe for disaster.
+One can easily make brittle assumptions about ordering of images or the structure of any associated metadata.
+Or, one might use ad hoc data structures that will not scale past memory limits.
 This echoes the challenges of the pre-relational days of database research before the idea of data independence where the query processing, the data, and the storage format are all intertwined.
 We want a unified model that substantially covers much of visual analytics that can allow us to leverage logical-physical separation principles that the database community has pioneered.
+ \textsf{DeepLens} explores physical join operator implementions that cover a variety of different visual analytics use cases and the physical design needed to support these operators.
 
 \subsection{Patch Query Model}
+The first step is to design a query model for visual analytics.
 After surveying a number of use cases from robotics to traffic camera analysis, we arrived at a simple query model, where visual analytics queries are relational queries over collections of subimages (called patches) and associated metadata about how those subimages were generated.
 The query processing engine is agnostic to how those patches are generated.
 They can be whole images, smaller tiled subimages, or even subimages extracted by an object detection neural networks.
@@ -23,7 +28,9 @@ Operator(Iterator<Tuple<Patch>> in,
 \end{lstlisting}
 Lineage is maintained as every operator is required to update the \texttt{ImgRef} attribute to retain a lineage chain back to the original image.
 
-\subsection{Example 1}
+To understand why we care so much about join operations, let us contrast two examples:
+
+\subsubsection{Example 1. (No Joins)}
 Consider a CCTV feed of a parking lot that collects and stores video.
 We want to evaluate the parking lot's utilization so we want to count the number of frames in the video that contain at least one car.
 We first run all of the frames through the SSD object detection network~\cite{liu2016ssd}, which returns bounding boxes and labels for common objects detected in the image.
@@ -34,7 +41,7 @@ SSDPatch(Frame, Bbox,
 \end{lstlisting}
 Over these SSD patch objects, the query of interest is well expressed in relational algebra over the metadata dictionary (a filter over labels and an aggregation over frame numbers).
 
-\subsection{Example 2}
+\subsubsection{Example 2}
 Now, suppose we are given two videos from two different cameras, we want to find all cars that appear in both videos.
 The first step is exactly the same as the previous example, we break the frames up into \texttt{SSDPatch} objects.
 Over the two sets of \texttt{SSDPatch}, we need to compare all of the bounding boxes and return those that are sufficiently similar in terms of image content.
@@ -48,6 +55,15 @@ Additionally, what if we knew that the target vehicle was red.
 It is not clear whether we would want to eagerly apply that predicate. 
 The predicate is likely CPU intensive and if the matching step has a low selectivity, it might be beneficial to apply the predicate after matching.
 These questions motivated us to design a DBMS-like framework to answer these sorts of queries.
+
+\subsection{Possible Architectural Directions}
+We briefly discuss possible architectures that one could use for a VDMS without building a new system.
+
+\vspace{0.5em} \noindent \textbf{No Persistent State: } One extreme is where there is no persistent state in the query processing system--or the ``Apache Spark approach''. The system has a set of operators, such as map, join, and filter, and the entire visual analytics pipeline is executed over shards of images. The only control one has over the join operator is the partitioning strategy. Many visual analytics joins are not equality joins and can consist of matching high-dimensional image features against each other.
+
+\vspace{0.5em} \noindent \textbf{RDBMS: } Another idea is to load all of the data into a Relational Database upfront--or the ``Postgres SQL approach''. There are several issues with this approach. First, we the image transformations that occur would have to occur outside of the system incurring loading and storing overheads. Second, lineage information would have to be tracked externally. Third, such systems are not tuned for a workload that consists of $\theta$-joins and a significant amount of binary data.
+
+\vspace{0.5em}  \noindent \textbf{End-to-End Learning: } The computer vision community has gone a different direction altogether with an end-to-end learning approach in an area called visual question answering. Here, queries and answers are fed into the system as training data (the system learns to predict the answer from the query and some images). The results have yet to demonstrate success at scale on natural images. 
 
 
 
