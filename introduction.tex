@@ -12,10 +12,12 @@ We built a research prototype system, called \textsf{DeepLens}, where visual ana
 
 This architecture disentangles the process that generates the patches with the downstream query processing of the collection--similar to the distinction between ETL and query processing.
 We use this system to illustrate the impact of operator selection and physical design on a benchmark of six analytics tasks by varying what is indexed, how the operators are implemented, and the underlying hardware.
-\emph{Indexing. } We found that index usage was crucial and could query improve performance by up-to 612x. However, particularly for the geometric indices, the size and dimensionality of the data plays a key role in how benefical an index will be.
-\emph{Lineage. } We found that many tasks require relating processed results back to the base data.
+\textbf{Indexing: }We found that index usage was crucial and could query improve performance by up-to 612x. However, particularly for the geometric indices, the size and dimensionality of the data plays a key role in how beneficial an index will be.
+\textbf{Lineage: }We found that many tasks require relating processed results back to the base data.
 Maintaining and indexing tuple-level lineage led to a 60x improvement in one benchmark query.
-\emph{CPU vs. GPU. } Cost-models that accurately balance CPU and GPU utlization for query optimization will be a significant challenge. These problems will be exacerbated in a distributed or parallel setting.
+\textbf{CPU vs. GPU: }Cost-models that accurately balance CPU and GPU utilization for query optimization will be a significant challenge. Some queries benefited by nearly two orders of magnitude, while other actually got slower when processing tasks were offloaded to a GPU.
+\textbf{Managing Uncertainty and Approximation: }Unlike in relational databases, queries in a VDMS are approximate by nature. Different implementations may have different accuracy profiles and lead to query optimization problems that are not necessarily runtime driven.
+One of our main conclusions is that \emph{query optimization and automated physical design are very much an open problem in the analysis of visual data.}
 
 
 While it is natural to connect recent interest in visual analytics with prior work on multimedia databases (see survey~\cite{yoshitaka1999survey}), the recent instantiations of deep learning-based video analytics systems only loosely borrow from past architectural designs.

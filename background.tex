@@ -1,16 +1,14 @@
 \section{Background and API}
-Recent work in visual analytics has mostly focused on optimizing the throughput of predictions on a single stream of images~\cite{anderson2018predicate, kang2018blazeit,kang2017noscope, wu2018querying, sparks2017keystoneml}.
-However, as a direct consequence of the rapid progress in computer vision, visual analytics workloads are becoming increasingly complex with requirements beyond this paradigm. 
+As a direct consequence of the rapid progress in computer vision, visual analytics workloads are becoming increasingly complex with requirements. 
 For example, it is not uncommon for visual perception pipelines in robotics to integrate predictions from multiple neural networks~\cite{hodson2018robots}.
-In security and tracking applications, matching objects in two different videos is a crucial task.
+In security and tracking applications, matching objects in two different videos is a major pain point.
 
-\emph{Joining information from two or more visual data streams is a main challenge in VDMS.}
+Joining information from two or more visual data streams is a main challenge in VDMS.
 Without a unified data and query model, implementing ones own join strategies is a recipe for disaster.
 One can easily make brittle assumptions about ordering of images or the structure of any associated metadata.
 Or, one might use ad hoc data structures that will not scale past memory limits.
 This echoes the challenges of the pre-relational days of database research before the idea of data independence where the query processing, the data, and the storage format are all intertwined.
 We want a unified model that substantially covers much of visual analytics that can allow us to leverage logical-physical separation principles that the database community has pioneered.
- \textsf{DeepLens} explores physical join operator implementions that cover a variety of different visual analytics use cases and the physical design needed to support these operators.
 
 \subsection{Patch Query Model}
 The first step is to design a query model for visual analytics.
@@ -32,7 +30,7 @@ To understand why we care so much about join operations, let us contrast two exa
 
 \subsubsection{Example 1. (No Joins)}
 Consider a CCTV feed of a parking lot that collects and stores video.
-We want to evaluate the parking lot's utilization so we want to count the number of frames in the video that contain at least one car.
+We want to evaluate the parking lot's utilization so we want to count the number of cars in each frame of the video.
 We first run all of the frames through the SSD object detection network~\cite{liu2016ssd}, which returns bounding boxes and labels for common objects detected in the image.
 Each of these bounding boxes defines a patch:
 \begin{lstlisting}
@@ -55,6 +53,7 @@ Additionally, what if we knew that the target vehicle was red.
 It is not clear whether we would want to eagerly apply that predicate. 
 The predicate is likely CPU intensive and if the matching step has a low selectivity, it might be beneficial to apply the predicate after matching.
 These questions motivated us to design a DBMS-like framework to answer these sorts of queries.
+
 
 \subsection{Possible Architectural Directions}
 We briefly discuss possible architectures that one could use for a VDMS without building a new system.
