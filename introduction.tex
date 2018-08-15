@@ -1,67 +1,25 @@
 \section{Introduction}\label{intro}\sloppy
- Recent advances in deep learning have enabled new forms of analytics on the content of images and videos.
-In the last two years, a number of systems have explored scaling visual analytics pipelines to larger and/or faster streams of data~\cite{anderson2018predicate, kang2018blazeit,kang2017noscope, wu2018querying, sparks2017keystoneml,haynes2018lightdb}.
-An archetypal task in such systems is to find all images in a corpus that contain a certain object, e.g., detecting people in CCTV footage.
-The proliferation of neural network-based object detection models (which identify and crop target objects from an image) have made such tasks feasible in the last few years~\cite{he2017mask}.
-Object detection models can be pre-trained on vast corpora of offline annotated data\footnote{For example, http://cocodataset.org/} and then can be deployed on unseen images or video frames to find those that have the desired object.
-Recent work has studied techniques for fast inference and aggregation on streams of predictions from object detection models~\cite{kang2018blazeit,kang2017noscope}.
+Recent advances in deep learning have enabled new forms of analytics on the content of images and videos. In the last two years, a number of systems have explored scaling visual analytics pipelines to larger and/or faster streams of data~\cite{anderson2018predicate, kang2018blazeit,kang2017noscope, wu2018querying, sparks2017keystoneml,haynes2018lightdb}. An archetypal task is to find all images in a corpus that contain a certain object, e.g., detecting people in CCTV footage. The proliferation of neural network-based object detection models (which identify and crop target objects from an image) have made such tasks feasible in the last few years~\cite{he2017mask}. Recent work has studied techniques for fast inference and aggregation on streams of predictions from object detection models~\cite{kang2018blazeit,kang2017noscope}.
 
 
-However, the overarching problem of supporting queries on the content of videos and images is far from solved.
-Consider a variant of the task before: given two videos find a certain object that appears in both videos.
-For example, we might be interested in determining if the same person appeared in two different CCTV feeds.
-To answer this query, one has to first find potential target objects in both videos and then match them against each other.
-There are immediately implementation decisions about indexing (can one build an index for faster image matching), optimization (if we do index, which video to scan and what type of an index to use), and compression (can the matching be performed on low-dimensional features instead of raw frames). 
-These issues are analagous to physical design and physical operator selection in traditional relational database management systems, where a strong separation of logical and physical concerns enables a declarative user-facing interface and an extensible system-facing interface.
-The data and the query models used video analytics today lack an analagous separation, where the implementations of query operators are often tied to specific neural network familes, use cases, and data.
-
-This paper explores the necessary components of a hypothetical Visual Data Management System (VDMS), and what is needed to provide a truly declarative query language for video and image analytics.
-We built a research prototype system, called \textsf{DeepLens}, which is designed like a dataflow query processing engine~\cite{graefe1994volcano}.
-In \textsf{DeepLens}, visual analytics tasks are maps, joins, and filters over collections of subimages (called patches) and any associated metadata about how those subimages were generated.
-We found this model to be suprisingly general supporting tasks that range from object detection to reverse image search.
-\textsf{DeepLens} allows for the materialization and indexing of intermediate results with both single-attribute and multi-dimensional indexes.
+However, the overarching problem of supporting queries on the content of videos and images is far from solved. Consider a variant of the task before: given two videos find a certain object that appears in both videos. For example, we might be interested in determining if the same person appeared in two different CCTV feeds. To answer this query, one has to first find potential target objects in both videos and then match them against each other. There are immediately implementation decisions about indexing (can one build an index for faster image matching), optimization (if we do index, which video to scan and what type of an index to use), and compression (can the matching be performed on low-dimensional features instead of raw frames).  These issues are analagous to physical design and physical operator selection in traditional relational database management systems, where a strong separation of logical and physical concerns enables a declarative user-facing interface and an extensible system-facing interface. The data and the query models used video analytics today lack an analagous separation, where the implementations of query operators are often tied to specific neural network familes, use cases, and data source semantics.
 
 
 
+This paper explores the necessary components of a future Visual Data Management System (VDMS) in the era of Deep Learning, and what is needed to provide a truly declarative query language.
+We built a research prototype system, called \textsf{DeepLens}, where visual analytics tasks are maps, joins, and filters over collections of subimages (called patches) and an associated key-value dictionary storing information them (e.g., labels or provenance). The query model in \textsf{DeepLens} has set semantics and makes no structural assumptions about the data source, e.g., any timing data in video are stored as additional attributes. Optimizations either for accuracy and performance are introduced through physical design, where \textsf{DeepLens} allows for the materialization, pre-computation, and both single-attribute and multi-dimensional indexing on patch collections.
 
 
-A successful VDMS will have to manage both single-dimensional indexes (e.g., B+ Trees) and geometric indices (e.g., KD-Trees).
+This architecture disentangles the process that generates the patches with the downstream query processing of the collection--similar to the distinction between ETL and query processing.
+We use this system to illustrate the impact of operator selection and physical design on a benchmark of six analytics tasks by varying what is indexed, how the operators are implemented, and the underlying hardware.
+\emph{Indexing. } We found that index usage was crucial and could query improve performance by up-to 612x. However, particularly for the geometric indices, the size and dimensionality of the data plays a key role in how benefical an index will be.
+\emph{Lineage. } We found that many tasks require relating processed results back to the base data.
+Maintaining and indexing tuple-level lineage led to a 60x improvement in one benchmark query.
+\emph{CPU vs. GPU. } Cost-models that accurately balance CPU and GPU utlization for query optimization will be a significant challenge. These problems will be exacerbated in a distributed or parallel setting.
 
 
-
-
-
-
-
-
-
-\textsf{DeepLens}
-
-
-
-
-
-\vspace{0.75em} \noindent \emph{Lesson 1. Explosion of physical design choices. }  We found that index usage was critical and could improve performance by up-to 612x, especially on queries that compared two collections of pixel data to each other.
-Particularly for the geometric indices, the size and dimensionality of the data plays a key role in what index to use. Changes to the extraction pipeline, such as new type of image featurization, may lead to substantial and unpredictable changes in index performance.
-Automated tools for physical design such as~\cite{sharma2018case,pavlo2017self} will be crucial.
-
-\vspace{0.5em} \noindent \emph{Lesson 2. Almost all processes are compute-limited. }
-Image processing algorithms are very compute intensive. This differs from classical DBMS models where IO costs are dominant. 
-Many classical indexing, query processing, and query optimization frameworks are designed with IO-limited models in mind.
-In a compute-limited world, there is a new space of optimizations that can be explored.
-For example, our experiments found that creating disk-based indexes on-the-fly could substantially improve performance since the benfit of reducing comparisons downstream significantly outweighs the I/O overhead.
-On the other hand, we found that join costs in image matching problems were unpredictable, non-linear, and sensitive to the particular chipset (GPU, Vectorization, Vanilla CPU).
-This poses a challenge for cost-based query optimization and envision that new results in learning-based query optimization~\cite{kaftan2018cuttlefish,krishnan2018deeprljoins} will be a key part of any VDMS.
-
-\vspace{0.5em} \noindent \emph{Lesson 3. Native support for lineage queries. } Semantics from images have to be first extracted with computer vision algorithms before structured queries can be executed. We found that many VA queries can be formulated as different types of joins and filters on the outputs of these algorithms and relating those results back to the base data. For example, finding a set of segmentation masks that satisfy a certain criteria and then overlaying them on the original image.
-\textsf{DeepLens} natively maintains tuple-level lineage to the original image or video after any extraction or transformation. This lineage is stored in the datastore and can be indexed and queried like any data--leading to a 60x improvement in one benchmark query.
-This idea is in the spirit of recent work in lineage management system such as~\cite{psallidas2018smoke}.
-
-
-\vspace{0.75em}
-
-While it is natural to connect recent interest in visual analytics with prior work on multimedia databases~\cite{yoshitaka1999survey}, the recent instantiations of visual analytics systems only loosely borrow from past architectural designs.
-We argue that as the scope of  visual analytics increases, scaling requires leveraging classical ideas from relational data management--as seen in the past with multimedia databases.
+While it is natural to connect recent interest in visual analytics with prior work on multimedia databases (see survey~\cite{yoshitaka1999survey}), the recent instantiations of deep learning-based video analytics systems only loosely borrow from past architectural designs.
+We argue that as the scope of visual analytics increases, scaling requires leveraging classical ideas from relational data management--as seen in the past with multimedia databases.
 However, the tasks that we evaluate are significantly higher dimensional (images featurized by 1000 of dimensions) than ones considered in the past either in Geospatial databases or Multimedia databases.
 Furthermore, the use cases have evolved where the metadata around the images is mostly generated by an automated deep learning pipeline rather than human provided.
 Maintaining provenance to the raw data is crucial for debuging and merging different results. 
