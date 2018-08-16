@@ -97,17 +97,24 @@ To avoid a large library of hand-written rules, the natural question to ask is w
 Figure \ref{join} illustrates the difficulties with the execution time of a Ball-Tree join as function of the size of the indexed relation in the high-dimensional and low-dimensional case. As the data structure is increasingly filled the execution time grows non-linearly. The non-linearity is also data-dependent and is more extreme in higher dimensional data. Accurately modeling the relationship between input relation size and operator cost is crucical for cost-based query optimization. Non-linearities are also known to affect standard join ordering heuristics~\cite{krishnan2018deeprljoins}.
 
 \subsubsection{Balancing CPU vs. GPU}
-Processing more complex queries results requires a more nuanced strategy in balancing CPU vs. GPU usage. 
+Processing these complex queries requires a nuanced strategy in balancing CPU vs. GPU usage. 
 For the ETL phase of these queries, which is dominated by neural network inference time, using the GPU is almost universally better.
-Figure \ref{build} (left) plots the processing time on each of the six benchmark queries for a vanilla CPU implementation (CPU), a vectorized neural network implementation (AVX), and a GPU implementation (GPU). Just by changing the underlying execution architecture there were up-to 12x changes in execution time. 
+Figure \ref{build} (left) plots the processing time on each of the six benchmark queries for a vanilla CPU implementation (CPU), a vectorized execution (AVX), and a GPU implementation (GPU). Just by changing the underlying execution architecture there were up-to 12x changes in execution time. 
+On the other hand, the results were more mixed for the query time. 
+For the two image matching queries, q1 and q4, we implemented an all pairs matching comparison with vectorization and on the GPU.
+For the larger query (q4) there is a significant performance benefit from using the GPU (34\% faster).
+For the smaller query (q1), the overhead of using the GPU outweighs the costs.
+Any cost-based optimizer has to weigh overheads before selecting a plan.
 
 
 \begin{figure}[t]
 % \vspace{-5pt}
 \centering
  \includegraphics[width=0.48\columnwidth]{figures/build.png}
- \caption{The execution architecture has a considerable impact on the processing time.  \label{build} }
+  \includegraphics[width=0.48\columnwidth]{figures/build2.png}
+ \caption{The execution architecture has a considerable impact on both ETL and Query time: vanilla CPU implementation (CPU), a vectorized execution (AVX), and GPU implementation (GPU). GPUs are significantly more efficient for the neural network dominated ETL time, but have more mixed results for the subsequent query processing on two image matching queries (q1, q4).  \label{build} }
 \end{figure}
 
+\subsubsection{Accuracy Implications}
 
 
