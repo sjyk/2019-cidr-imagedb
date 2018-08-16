@@ -1,42 +1,26 @@
 \section{Introduction}\label{intro}\sloppy
 Recent advances in deep learning have enabled new forms of analysis on images and videos~\cite{lecun2015deep}. 
-An archetypal task is to find all images in a corpus that contain a certain object, e.g., detecting people in CCTV footage, using neural network-based object detection models.  
+An typical analytics task is to find all images in a corpus that contain a certain object, e.g., detecting people in CCTV footage, using neural network-based object detection models.  
 Deploying such models at scale for visual analytics is a formidable computer systems challenge with significant recent interest from both industry and academia~\cite{kang2017noscope, anderson2018predicate, kang2018blazeit, chetlur2014cudnn}. 
-Recent work is increasingly connecting visual analytics to ideas from relational database systems, where users can specify predicates in a query language and the system uses a neural network to determine which images satisfy those queries~\cite{kang2018blazeit,wu2018querying}.
-The motivation is that query languages provide the user with a declarative interface that abstract low-level implementation and optimization details of the neural network inference steps.
+Recent work is increasingly inspired by ideas from relational database systems, where users can specify predicates in a query language and the system uses a neural network to determine which images satisfy those query predicates~\cite{kang2018blazeit,wu2018querying}.
+The motivation is that a query language provides the user with a declarative interface that abstracts away low-level implementation and optimization details of the neural network inference steps.
 
-Going beyond the object identification examples described in prior work, the overarching problem of supporting declarative queries on the content of videos and images is far from solved. 
-Consider a simple variant of the task before: given two videos find a certain object that appears in both videos. For example, we might be interested in determining if the same person appeared in two different CCTV feeds. To answer this query, one has to first find potential target objects in both videos and then match them against each other. There are implementation decisions about indexing (can one build an index for faster image matching), optimization (if we do index, which video to scan and what type of an index to use), and compression (can the matching be performed on low-dimensional features instead of raw frames).
+Going beyond the object identification examples described in prior work, the overarching problem of supporting declarative query answering on the content of videos and images is far from solved. 
+Consider a simple variant of the task before: given two videos find a certain object that appears in both videos. For example, we might be interested in determining if the same person appeared in two different CCTV feeds. To answer this query, one has to first find potential target objects in both videos and then match them against each other. There are hidden implementation decisions about indexing (can one build an index for faster image matching), optimization (if we do index, which video to scan and what type of an index to use), and compression (can the matching be performed on low-dimensional features instead of raw frames). These choices go beyond the intra-operator neural network optimizations seen in~\cite{kang2017noscope, anderson2018predicate, kang2018blazeit}, and are more analagous to physical design and physical operator selection in traditional relational database management systems. In RDBMS, a strong separation of logical and physical concerns enables a declarative user-facing interface and an extensible system-facing interface. In contrast, the data and the query models used video analytics today can lack an analagous separation. The implementations of query operators are often tied to specific neural network familes, object detection/identification use cases, and data source semantics like ordering.
 
-These choices go beyond the intra-operator neural network optimizations seen in~\cite{kang2017noscope, anderson2018predicate, kang2018blazeit}, and are more analagous to physical design and physical operator selection in traditional relational database management systems. A strong separation of logical and physical concerns enables a declarative user-facing interface and an extensible system-facing interface. The data and the query models used video analytics today can lack analagous separation, where the implementations of query operators are often tied to specific neural network familes, object detection/identification use cases, and data source semantics like ordering.
-
-This paper explores the necessary components of a future Visual Data Management System (VDMS) in the era of Deep Learning.
-We built a research prototype system, called \textsf{DeepLens}, where visual analytics tasks are maps, joins, and filters over collections of subimages (called patches) and an associated key-value dictionary storing information them (e.g., labels or provenance). The query model in \textsf{DeepLens} has set semantics and makes no structural assumptions about the data source, e.g., any timing data in video are stored as additional attributes. Optimizations for performance are introduced through physical design, where \textsf{DeepLens} allows for the materialization, pre-computation, and both single-attribute and multi-dimensional indexing on patch collections.
-
+This paper explores the necessary steps towards a future Visual Data Management System (VDMS).
+We built a research prototype system, called \textsf{DeepLens}, where visual analytics tasks are maps, joins, and filters over collections of subimages (called patches) and an associated key-value dictionary storing information them (e.g., neural net classifications). The query model in \textsf{DeepLens} has set semantics and makes no structural assumptions about the data source, e.g., any timing data in video are stored as additional attributes. Optimizations for performance are introduced through physical design, where \textsf{DeepLens} allows for the materialization, data layout, and both single-attribute and multi-dimensional indexing on patch collections.
 
 This architecture disentangles the process that generates the patches (neural network inference in prior work) with the downstream query processing of the collection--similar to the distinction between ETL and query processing.
-To illustrate the impact of physical and logical separation, we 
- design on a benchmark of six analytics tasks and vary what is indexed, how the operators are implemented, and the properties of the underlying hardware.
- Poor choices can sacrifice multiple orders of magnitude of performance.
+The query operators are agnostic to whether those patches represent the output of a neural network or a black-box geometric computer vision pipeline. 
+To illustrate the benefits of physical and logical separation, we 
+ design on a benchmark of six analytics tasks and vary what is indexed, how the operators are implemented, the underlying algorithms, and the properties of the underlying hardware.
+ Simply put, we found that poor design choices can sacrifice multiple orders of magnitude of performance.
 \textbf{Indexing: } We found that index usage was crucial and could query improve performance by up-to 612x. However, particularly for the geometric indices, the size and dimensionality of the data plays a key role in how beneficial an index will be.
 \textbf{Lineage: }We found that many tasks require relating processed results back to the base data.
 Maintaining and indexing tuple-level lineage led to a 60x improvement in one benchmark query.
-\textbf{CPU vs. GPU: }Cost-models that accurately balance CPU and GPU utilization for query optimization will be a significant challenge. Some queries benefited by nearly two orders of magnitude, while other actually got slower when processing tasks were offloaded to a GPU.
-\textbf{Managing Uncertainty and Approximation: }Unlike in relational databases, queries in a VDMS are approximate by nature. Different implementations may have different accuracy profiles and lead to query optimization problems that are not necessarily runtime driven.
-One of our main conclusions is that \emph{query optimization and automated physical design are very much an open problem in the analysis of visual data.}
-
-
-While it is natural to connect recent interest in visual analytics with prior work on multimedia databases (see survey~\cite{yoshitaka1999survey}), the recent instantiations of deep learning-based video analytics systems only loosely borrow from past architectural designs.
-We argue that as the scope of visual analytics increases, scaling requires leveraging classical ideas from relational data management--as seen in the past with multimedia databases.
-However, the tasks that we evaluate are significantly higher dimensional (images featurized by 1000 of dimensions) than ones considered in the past either in Geospatial databases or Multimedia databases.
-Furthermore, the use cases have evolved where the metadata around the images is mostly generated by an automated deep learning pipeline rather than human provided.
-Maintaining provenance to the raw data is crucial for debuging and merging different results. 
-These differences aside, the core idea is the same: a relational database which holds structured metadata and image data with a relational data and query model. 
-This way we can leverage the principles of design from relational database management systems and apply them to VDMS.
-
-
-
-
+\textbf{CPU vs. GPU: } Cost-models that accurately balance CPU and GPU utilization for query optimization will be a significant challenge. Some queries benefited by nearly two orders of magnitude, while other actually got slower when processing tasks were offloaded to a GPU.
+\textbf{Managing Uncertainty: } Unlike in relational databases, queries in a VDMS are approximate by nature. Traditional optimizations, like filter pushdown, may additionally create different accuracy profiles.  One of our main conclusions is that any future ``declarative'' VDMS will have to \emph{revisit query optimization and automated physical design from a unified perspective of performance and accuracy tradeoffs.}  
 
 
 
