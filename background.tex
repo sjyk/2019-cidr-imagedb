@@ -57,10 +57,12 @@ Our work is inspired by prior work on multimedia databases, which have long ackn
 Recent work can be best summarized as filter optimization~\cite{kang2017noscope, zhang2018ffs, anderson2018physical, jiang2018chameleon}; how to evaluate a neural network predicate as quickly as possible while satisfying an accuracy constraint.
 We project into the future that the community will soon move past filters and also consider joins and more complex query operators.
 Addressing the more complex visual analytics queries will require leveraging ideas from classical work on indexing strategies~\cite{faloutsos2012searching}.
-However, problems in this new setting are higher dimensional, have to manage uncertainty, and have to manage the provenace of downstream data. 
-This paper evaluates these tradeoffs and proposes a initial architecture for a modern VDMS.
-A recent paper that we would like to highlight is a data management system for Augmented Reality~\cite{haynes2018lightdb}, and many of the ideas relating to multidimensional indexing will be very relevant.
-Our main conclusion from this paper is that any succesfull VDMS system will have to have a sophisticated and robust query optimizer and some level of automated physical design. 
+However, problems in this new setting are higher dimensional and have to manage uncertainty.
+Another important design decision was to natively manage image transformation and provenance code in our system.
+We chose this architecture since recent work manipulates neural network structure, e.g., by cascading models to improve accuracy or performance~\cite{kang2017noscope, anderson2018physical, jiang2018mainstream}.
+Another recent paper that we would like to highlight is a data management system for Augmented Reality~\cite{haynes2018lightdb}, and many of the ideas relating to multidimensional indexing will be very relevant.
+This paper evaluates all of these design tradeoffs and proposes a initial architecture for a modern VDMS.
+One of our main conclusions is that any succesfull VDMS system will have to have a sophisticated and robust query optimizer and some level of automated physical design. 
 We envision that new results in learning-based query optimization~\cite{kaftan2018cuttlefish,krishnan2018deeprljoins} and ideas inspired by the new automated tools for physical design such as~\cite{sharma2018case,pavlo2017self} will be crucial.
 
 
