@@ -66,7 +66,7 @@ q3 requires a backtracing query to match the bounding boxes and the OCR output i
 \end{figure}
 
 \subsection{Overhead For Indexing}
-Existing systems in this domain do not make a distinction between query time and ETL time.
+Existing systems in this domain do not make a distinction between Query time and ETL time.
 We believe this separation is justified because indexes can be reused by other queries and their construction costs amortize.
 Regardless, several of the queries execute faster even if the indexes are built ``on-the-fly'' (Figure \ref{index}).
 For example, q1 executes nearly 5 times faster than the baseline and q4 executes 3.5 times faster than the baseline.
@@ -88,23 +88,26 @@ For others, locality sensitive hashing or similar approximations may suffice.
 \end{figure}
 
 
-\subsection{Nonlinear Join Costs}
-
-
-To avoid a large library of hand-written rules, the natural question to ask is whether it is possible to build a cost-based query optimizer for this system.
-In cost-based query optimization, the optimizer uses a cost model to evaluate the cost of different query execution plans. We find that operators in \textsf{DeepLens} pose a few challenges for cost-based optimization. 
-
-Figure \ref{join} illustrates the difficulties with the execution time of a Ball-Tree join as function of the size of the indexed relation in the high-dimensional and low-dimensional case. As the data structure is increasingly filled the execution time grows non-linearly. The non-linearity is also data-dependent and is more extreme in higher dimensional data. Accurately modeling the relationship between input relation size and operator cost is crucical for cost-based query optimization. Non-linearities are also known to affect standard join ordering heuristics.
-
 \subsection{Subtleties in Query Optimization}
+For queries that join multiple image collections, neural network inference time does not necessarily dominate.
+Optimizing these spatial joins turned out to be more challenging than we thought.
+
+\subsubsection{Nonlinear Join Costs}
+To avoid a large library of hand-written rules, the natural question to ask is whether it is possible to build a cost-based query optimizer for this system.
+Figure \ref{join} illustrates the difficulties with the execution time of a Ball-Tree join as function of the size of the indexed relation in the high-dimensional and low-dimensional case. As the data structure is increasingly filled the execution time grows non-linearly. The non-linearity is also data-dependent and is more extreme in higher dimensional data. Accurately modeling the relationship between input relation size and operator cost is crucical for cost-based query optimization. Non-linearities are also known to affect standard join ordering heuristics~\cite{krishnan2018deeprljoins}.
+
+\subsubsection{Balancing CPU vs. GPU}
+Processing more complex queries results requires a more nuanced strategy in balancing CPU vs. GPU usage. 
+For the ETL phase of these queries, which is dominated by neural network inference time, using the GPU is almost universally better.
+Figure \ref{build} (left) plots the processing time on each of the six benchmark queries for a vanilla CPU implementation (CPU), a vectorized neural network implementation (AVX), and a GPU implementation (GPU). Just by changing the underlying execution architecture there were up-to 12x changes in execution time. 
+
 
 \begin{figure}[t]
 % \vspace{-5pt}
 \centering
- \includegraphics[width=0.8\columnwidth]{figures/build.png}
+ \includegraphics[width=0.48\columnwidth]{figures/build.png}
  \caption{The execution architecture has a considerable impact on the processing time.  \label{build} }
 \end{figure}
 
-Compute-bound operations are also, by nature, sensitive to the underlying system architecture and execution engine. Figure \ref{build} plots the processing time on each of the six benchmark queries for a vanilla CPU implementation (CPU), a vectorized neural network implementation (AVX), and a GPU implementation (GPU). Just by changing the underlying execution architecture there were up-to 12x changes in execution time. 
 
 
