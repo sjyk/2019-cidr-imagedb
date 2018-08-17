@@ -83,8 +83,8 @@ For others, locality sensitive hashing or similar approximations may suffice.
 \begin{figure}[t]
 % \vspace{-5pt}
 \centering
- \includegraphics[width=\columnwidth]{figures/spatialjoin.png}
- \caption{We evaluate the execution time of a Ball-Tree join as function of the size of the indexed relation in the high-dimensional and low-dimensional case. As the data structure is increasingly filled the execution time grows non-linearly. \red{Probably we could change the label on the x axis to Number of Tuples to match the y axis in Figure 4.} \label{join} }
+ \includegraphics[width=0.8\columnwidth]{figures/spatialjoin.png}
+ \caption{We evaluate the execution time of a Ball-Tree join as function of the size of the indexed relation in the high-dimensional and low-dimensional case. As the data structure is increasingly filled the execution time grows non-linearly. \label{join} }
 \end{figure}
 
 
@@ -116,5 +116,23 @@ Any cost-based optimizer has to weigh overheads before selecting a plan.
 \end{figure}
 
 \subsubsection{Accuracy Implications}
+Unlike in relational databases, queries in a VDMS are approximate by nature.
+Cascades of approximate operators can have correlations in their errors that are hard to reason about.
+These errors can be affected by query optimizer choices.
+Let us take q4 as an example.
+To process this query, the system first identifies patches using an object detector, then filters those patches to those that are people, and then matches all pairs of patches to deduplicate.
+Another approach would be to  system first identifies patches using an object detector, then matches all pairs of patches (regardless if they are ``people'') to deduplicate, and then filters on those pairs that have at least one person label.
+The second approach goes against typical query optimization principles of filter pushdown--but we see that it is actually a more accurate strategy:
+
+\begin{table}[]
+\begin{tabular}{|l|l|l|l|}
+\hline
+& Recall               & Precision & Runtime         \\
+\hline
+Patch, Filter, Match & 0.73      & 0.97    & 34.56  \\
+Patch, Match, Filter & 0.82      & 0.98    & 62.11  \\
+\hline
+\end{tabular}
+\end{table}
 
 
