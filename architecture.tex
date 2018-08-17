@@ -1,10 +1,3 @@
-\begin{figure}[t]
-% \vspace{-5pt}
-\centering
- \includegraphics[width=\columnwidth]{figures/teaser.png}
- \caption{DeepLens has a dataflow-like architecture for processing visual analytics queries. All analysis is cast as relational queries on relations of image patches. Intermediate results can be materialized and indexed.  \label{teaser} }
-\end{figure}
-
 \section{DeepLens Architecture}
 Our architecture is designed as a middle ground between the pure stateless dataflow approach and the RDBMS approach.
 \textsf{DeepLens} provides dataflow operators to shape, transform, and manipulate image corpora at scale, but also supports materialization and indexing of intermediate results.
@@ -23,7 +16,7 @@ The ETL layer defines the generation of \texttt{Patch} objects and their manipul
 \vspace{0.25em}
 \noindent \textbf{Patch Generators (Extract): } We provide a library of \texttt{Patch Generators}. 
 These generators take as input an iterator over raw images and return an iterator over \texttt{Patch} objects.  
-Our experiments consider three instantiations of these generators: object detection (ones that segment objects out of the image return segmentation masks), optical character recognition (one that identifies text in an image and returns a segmentation as well as the recognized string) and whole-image patches (returns the whole image).
+Our experiments consider three instantiations of these generators: object detection (ones that segment objects out of the image return segmentation masks), optical character recognition (one that identifies text in an image and returns a segmentation as well as the recognized strings) and whole-image patches (returns the whole image).
 
 
 \vspace{0.25em}
@@ -43,7 +36,7 @@ The sorted file allows for quick retrieval of temporal predicates.
 We also support the construction of indexes on the materialized data.
 The challenge is that every data type requires a specialized index structure.
 Over string valued or discrete metadata, the index choices are straight-forward. 
-We support both hash tables and B+ trees are supported over any key (both of which are implemented with BerkeleyDB).
+We support hash tables and B+ trees over any key (both of which are implemented with BerkeleyDB).
 
 For the multidimensional data (patch segmentation parameters or image features), indexing is a little more nuanced and dependent on the workload.
 As a concrete example, let us consider patches that are parametrized by ``bounding boxes'' (x1,y1,x2,y2).
@@ -83,6 +76,6 @@ This is similar to queries studied in recent lineage systems~\cite{psallidas2018
 
 \textsf{DeepLens} natively tracks tuple-level lineage.
 Every \texttt{Patch} object maintains a descriptor how it was generated from either a raw image or another patch.
-Its relationship to the base data is maintained a sequence of pointers.
+Its relationship to the base data is maintained as a sequence of pointers.
 This information is stored as attributes in the metadata key-value dictionary so indexes and queries can be natively supported on them.
 

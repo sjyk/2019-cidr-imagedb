@@ -2,9 +2,9 @@
 We briefly discuss how we designed the benchmark datasets and corresponding workload.
 
 \subsection{Datasets}
-From publicly available sources, we constructed datasets to simulated many envisioned use cases of \textsf{DeepLens}. An important consideration was images of varying format and size. Most academic benchmarks in the machine learning community consist of ``natural images'' in the same format and resolution. We decided that it was important to evaluate a diversity of tasks and the robustness of the injestion pipeline to different formats, sizes, and content. 
+From publicly available sources, we constructed datasets to simulate many envisioned use cases of \textsf{DeepLens}. An important consideration was images of varying format and size. Most academic benchmarks in the machine learning community consist of ``natural images'' in the same format and resolution. We decided that it was important to evaluate a diversity of tasks and the robustness of the injestion pipeline to different formats, sizes, and content. 
 
-\vspace{0.25em} \noindent \textbf{PC.} This dataset is designed to simulate a dataset of images found on a personal computer. It consists of 779 consisting of photographs, screenshots, and document scans. 
+\vspace{0.25em} \noindent \textbf{PC.} This dataset is designed to simulate a dataset of images found on a personal computer. It consists of 779 photographs, screenshots, and document scans. 
 
 \vspace{0.25em} \noindent \textbf{TrafficCam.} This dataset consists of 24 mins and 30 secs of high-definition (1080p) traffic camera video. 
 
@@ -54,7 +54,7 @@ q3 requires a backtracing query to match the bounding boxes and the OCR output i
 % \vspace{-5pt}
 \centering
  \includegraphics[width=\columnwidth]{figures/indexing_ab.png}
- \caption{We evaluate the pipeline runtime, including ETL and index creation, for an optimized \textsf{DeepLens} (DL) vs. the baseline (BL). On many queries it is beneficial to materialize intermediate results and build indexes to speed up future performance. Indexing has a relatively small overhead given the compute-intensive nature of the queries.  \label{index} }
+ \caption{We evaluate the pipeline runtime, including ETL and "on-the-fly" index creation, for an optimized \textsf{DeepLens} (DL) vs. the baseline (BL). On many queries it is beneficial to materialize intermediate results and build indexes to speed up future performance. Indexing has a relatively small overhead given the compute-intensive nature of the queries.  \label{index} }
 \end{figure}
 
 \begin{figure}[t]
@@ -69,7 +69,7 @@ Existing systems in this domain do not make a distinction between Query time and
 We believe this separation is justified because indexes can be reused by other queries and their construction costs amortize.
 Regardless, several of the queries execute faster even if the indexes are built ``on-the-fly'' (Figure \ref{index}).
 For example, q1 executes nearly 5 times faster than the baseline and q4 executes 3.5 times faster than the baseline.
-The index significantly reduces the number of image matching operations which dominate the runtime, and thus, the cost of building and persisting the index is offset.
+The index significantly reduces the number of image matching operations that dominate the runtime, and thus, the cost of building and persisting the index is offset.
 
 The indexes with largest overhead to build are the spatial indexes.
 Figure \ref{indexbuild} plots the construction time of the multidimensional and single dimensional indexes supported in \textsf{DeepLens} as a function of the number of tuples indexed.
@@ -91,7 +91,7 @@ For others, locality sensitive hashing or similar approximations may suffice.
 For queries that join multiple image collections, neural network inference time does not necessarily dominate.
 Optimizing these spatial joins turned out to be more challenging than we thought.
 
-\subsubsection{Nonlinear Join Costs}
+\subsubsection{Nonlinear join costs}
 To avoid a large library of hand-written rules, the natural question to ask is whether it is possible to build a cost-based query optimizer for this system.
 Figure \ref{join} illustrates the difficulties with the execution time of a Ball-Tree join as function of the size of the indexed relation in the high-dimensional and low-dimensional case. As the data structure is increasingly filled the execution time grows non-linearly. The non-linearity is also data-dependent and is more extreme in higher dimensional data. Accurately modeling the relationship between input relation size and operator cost is crucical for cost-based query optimization. Non-linearities are also known to affect standard join ordering heuristics~\cite{krishnan2018deeprljoins}.
 
@@ -114,24 +114,26 @@ Any cost-based optimizer has to weigh overheads before selecting a plan.
  \caption{The execution architecture has a considerable impact on both ETL and Query time: vanilla CPU implementation (CPU), a vectorized execution (AVX), and GPU implementation (GPU). GPUs are significantly more efficient for the neural network dominated ETL time, but have more mixed results for the subsequent query processing on two image matching queries (q1, q4).  \label{build} }
 \end{figure}
 
-\subsubsection{Accuracy Implications}
+\subsubsection{Accuracy implications of different query plans}
 Unlike in relational databases, queries in a VDMS are approximate by nature.
 Cascades of approximate operators can have correlations in their errors that are hard to reason about.
 These errors can be affected by query optimizer choices.
 Let us take q4 as an example.
 To process this query, the system first identifies patches using an object detector, then filters those patches to those that are people, and then matches all pairs of patches to deduplicate.
-Another approach would be to  system first identifies patches using an object detector, then matches all pairs of patches (regardless if they are ``people'') to deduplicate, and then filters on those pairs that have at least one person label.
-The second approach goes against typical query optimization principles of filter pushdown--but we see that it is actually a more accurate strategy:
+In another approach, the system would first identify patches using an object detector, then match all pairs of patches (regardless if they are ``people'') to deduplicate, and finally filter on those pairs that have at least one person label.
+The second approach goes against typical query optimization principles of filter pushdown--but we see that it is actually a more accurate strategy.
 
 \begin{table}[]
-\begin{tabular}{|l|l|l|l|}
+\centering
+\begin{tabular}{|c|c|c|c|}
 \hline
-& Recall               & Precision & Runtime         \\
+Execution method for q4 & Recall               & Precision & Runtime         \\
 \hline
 Patch, Filter, Match & 0.73      & 0.97    & 34.56  \\
 Patch, Match, Filter & 0.82      & 0.98    & 62.11  \\
 \hline
 \end{tabular}
+\caption{Accuracy vs runtime for different execution methods of q4.} \label{tab:q4execution}
 \end{table}
 
 
