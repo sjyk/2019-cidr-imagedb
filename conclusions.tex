@@ -2,10 +2,15 @@
 The growing maturity of neural networks for image prediction and segmentation problems has made visual analytics an attractive and inter-discplinary field of study.
 We explored the intersection of these neural network models and data management by designing a query processing engine called \textsf{DeepLens}.
 Our long-term goal is develop a scalable and performant visual data management system.
-These experiments are a preliminary and  illustrate three lessons: (1) the importance of physical design and physical operator selection, (2) query processing over compute-bound operators, and, (3) the importance of lineage in the system. 
+Recent work has been very focused on speeding up neural network inference~\cite{kang2017noscope, zhang2018ffs, anderson2018physical, jiang2018chameleon}.
+We find that as we start processing increasingly complex queries, the neural network inference time no longer dominates and our experiments illustrate other bottlenecks in the system.
+Addressing these complex queries requires a unified data and query model and the logical-physical separation seen in traditional a RDBMS.
 
-One of the most compelling reasons to study the design of VDMS is that it brings together many hard challenges in database research. 
+Perhaps, one of the most compelling reasons to study the design of VDMS is that it brings together many hard challenges in database research. 
+In particular, we believe the query optimization challenge is significant.
 We hope to explore new strategies for joint multi-query optimization and optimal physical design. Doing so might well require significant machine learning to navigate a noisy and analytically complex cost model. 
-We also hope to consider improved techniques for image compression and approximate query processing--keeping in mind that the expensive step is often a numerical computation.
-Image queries are always approximate and their natural numerical representation provides us with more structure than we typically have.
+Image queries are always approximate, and managing uncertainty and quantifying the accuracy effects of a certain plan will also be a serious challenge.
+We also hope to consider improved techniques for image compression and approximate query processing.
+The natural numerical representation of images provides us with more structure than we typically have in normal database workloads.
 There are opportunities to adaptively integrate dimensionality reduction to fit data structures in memory.
+
